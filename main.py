@@ -48,6 +48,7 @@ class BusinessData(BaseModel):
     website_url: str
     email: str
     phone: str
+    password: str
     business_description: str
     social_media_links: Dict[str, str]
     founder_name: str
@@ -114,7 +115,7 @@ async def process_directories(business_id: int, urls: List[str]):
         try:
             logger.info(f"Processing directory: {url}")
             agent = DirectoryAgent(business_data)
-            result = await agent.submit_to_directory(url)
+            result = agent.submit_to_directory(url)
             
             # Save result
             data_manager.update_submission_status(

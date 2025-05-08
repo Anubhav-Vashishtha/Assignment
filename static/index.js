@@ -23,6 +23,7 @@ document
       tagline: document.getElementById("tagline").value,
       website_url: document.getElementById("website_url").value,
       email: document.getElementById("email").value,
+      password: document.getElementById("password").value,
       phone: document.getElementById("phone").value,
       business_description: document.getElementById("business_description")
         .value,

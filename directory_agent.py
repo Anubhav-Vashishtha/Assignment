@@ -21,7 +21,6 @@ class DirectoryAgent:
         self.business_data = business_data
         self.captcha_api_key = os.environ.get("CAPTCHA_API_KEY", "")
         
-        # Configure Chrome options
         self.chrome_options = webdriver.ChromeOptions()
         self.chrome_options.add_argument("--start-maximized")
         self.chrome_options.add_argument("--disable-extensions")
@@ -29,9 +28,6 @@ class DirectoryAgent:
         self.chrome_options.add_argument("--disable-notifications")
         self.chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36")
         
-        # For headless mode (uncomment if needed)
-        # self.chrome_options.add_argument("--headless")
-        # self.chrome_options.add_argument("--disable-gpu")
     
     def submit_to_directory(self, url: str) -> Dict[str, Any]:
         """Process a directory submission using Selenium"""
@@ -132,7 +128,6 @@ class DirectoryAgent:
         return None
     
     def _is_login_required(self, driver):
-        """Check if login is required before submission"""
         login_indicators = [
             "login", "sign in", "log in", "signin", "log-in",
             "register", "sign up", "signup", "create account"
@@ -142,9 +137,8 @@ class DirectoryAgent:
         
         for indicator in login_indicators:
             if indicator in page_content:
-                # Check if there's an actual login form
                 try:
-                    login_form = driver.find_element(By.XPATH, "//form[.//input[@type='password']")
+                    login_form = driver.find_elements(By.XPATH, "//form[.//input[@type='password']]")
                     if login_form:
                         return True
                 except NoSuchElementException:
@@ -164,7 +158,7 @@ class DirectoryAgent:
             password_fields = driver.find_elements(By.XPATH, "//input[@type='password']")
             if password_fields:
                 # Generate a password based on business data
-                password = f"SEO{self.business_data['company_name'].replace(' ', '')}2023!"
+                password = self.business_data['password']
                 password_fields[0].send_keys(password)
             
             # Find and click submit button
