@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SEO Directory Submission Agent</title>
+    <link rel="stylesheet" href="./static/index.css">
+    
+</head>
+<body>
+    <div class="container">
+        <h1>SEO Directory Submission Agent</h1>
+        
+        <div class="tab">
+            <button class="tablinks active" onclick="openTab(event, 'businessForm')">Submit Business</button>
+            <button class="tablinks" onclick="openTab(event, 'statusCheck')">Check Status</button>
+        </div>
+        
+        <div id="businessForm" class="tabcontent" style="display: block;">
+            <h2>Business Information</h2>
+            <form id="businessDataForm">
+                <div class="form-section">
+                    <h3>Basic Information</h3>
+                    <label for="company_name">Company Name*</label>
+                    <input type="text" id="company_name" name="company_name" required>
+                    
+                    <label for="tagline">Tagline/Slogan*</label>
+                    <input type="text" id="tagline" name="tagline" required>
+                    
+                    <label for="website_url">Website URL*</label>
+                    <input type="url" id="website_url" name="website_url" required>
+                    
+                    <label for="email">Email Address*</label>
+                    <input type="email" id="email" name="email" required>
+                    
+                    <label for="phone">Phone Number*</label>
+                    <input type="text" id="phone" name="phone" required>
+                </div>
+                
+                <div class="form-section">
+                    <h3>Description</h3>
+                    <label for="business_description">Business Description*</label>
+                    <textarea id="business_description" name="business_description" rows="5" required></textarea>
+                </div>
+                
+                <div class="form-section">
+                    <h3>Social Media</h3>
+                    <div class="social-media-inputs">
+                        <div class="social-media-input">
+                            <label for="facebook">Facebook</label>
+                            <input type="url" id="facebook" name="facebook">
+                        </div>
+                        <div class="social-media-input">
+                            <label for="twitter">Twitter</label>
+                            <input type="url" id="twitter" name="twitter">
+                        </div>
+                    </div>
+                    <div class="social-media-inputs">
+                        <div class="social-media-input">
+                            <label for="linkedin">LinkedIn</label>
+                            <input type="url" id="linkedin" name="linkedin">
+                        </div>
+                        <div class="social-media-input">
+                            <label for="instagram">Instagram</label>
+                            <input type="url" id="instagram" name="instagram">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h3>Additional Information</h3>
+                    <label for="founder_name">Founder/Owner Name*</label>
+                    <input type="text" id="founder_name" name="founder_name" required>
+                    
+                    <label for="business_category">Business Category*</label>
+                    <input type="text" id="business_category" name="business_category" required>
+                    
+                    <label for="keywords">Keywords (comma separated)*</label>
+                    <input type="text" id="keywords" name="keywords" required>
+                </div>
+                
+                <div class="form-section">
+                    <h3>Location</h3>
+                    <label for="address">Address*</label>
+                    <input type="text" id="address" name="address" required>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex: 1;">
+                            <label for="city">City*</label>
+                            <input type="text" id="city" name="city" required>
+                        </div>
+                        <div style="flex: 1;">
+                            <label for="state">State/Province*</label>
+                            <input type="text" id="state" name="state" required>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex: 1;">
+                            <label for="country">Country*</label>
+                            <input type="text" id="country" name="country" required>
+                        </div>
+                        <div style="flex: 1;">
+                            <label for="zip">ZIP/Postal Code*</label>
+                            <input type="text" id="zip" name="zip" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit">Save Business Information</button>
+            </form>
+            
+            <div id="csvUploadSection" class="hidden form-section">
+                <h2>Upload Directory URLs</h2>
+                <p>Your business information has been saved. Now upload a CSV file with directory URLs.</p>
+                <form id="csvUploadForm">
+                    <input type="hidden" id="business_id" name="business_id">
+                    <label for="csvFile">CSV File with URLs (one URL per line)*</label>
+                    <input type="file" id="csvFile" name="csvFile" accept=".csv" required>
+                    <button type="submit">Start Submissions</button>
+                </form>
+            </div>
+        </div>
+        
+        <div id="statusCheck" class="tabcontent">
+            <h2>Check Submission Status</h2>
+            <form id="statusCheckForm">
+                <label for="check_business_id">Business ID</label>
+                <input type="number" id="check_business_id" name="check_business_id" required>
+                <button type="submit">Check Status</button>
+            </form>
+            
+            <div id="statusResults" class="status-container hidden">
+                <h3>Submission Status</h3>
+                <div id="statusList"></div>
+                
+                <button id="refreshStatus" class="hidden">Refresh Status</button>
+                <button id="checkListings" class="hidden">Check Listings</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="./static/index.js"></script>
+</body>
+</html>
+
