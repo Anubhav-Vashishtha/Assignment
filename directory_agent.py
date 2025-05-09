@@ -18,9 +18,11 @@ logger = logging.getLogger(__name__)
 
 class DirectoryAgent:
     def __init__(self, business_data: Dict[str, Any]):
+        """Initialize with business data for directory submissions."""
         self.business_data = business_data
         self.captcha_api_key = os.environ.get("CAPTCHA_API_KEY", "")
         
+        # Configure Chrome options for Selenium
         self.chrome_options = webdriver.ChromeOptions()
         self.chrome_options.add_argument("--start-maximized")
         self.chrome_options.add_argument("--disable-extensions")
@@ -30,49 +32,48 @@ class DirectoryAgent:
         
     
     def submit_to_directory(self, url: str) -> Dict[str, Any]:
-        """Process a directory submission using Selenium"""
+        """Submit business to a directory and return submission results."""
         driver = None
         try:
             # Initialize Chrome driver
             driver = webdriver.Chrome(options=self.chrome_options)
             wait = WebDriverWait(driver, 20)
             
-            # Navigate to URL
+            # Navigate to URL and take initial screenshot
             driver.get(url)
-            time.sleep(2)  # Initial page load
+            time.sleep(2)
             
-            # Take screenshot
             screenshot_path = f"static/screenshots/{url.replace('://', '_').replace('/', '_')}.png"
             os.makedirs(os.path.dirname(screenshot_path), exist_ok=True)
             driver.save_screenshot(screenshot_path)
             
-            # Look for submission link
+            # Try to find submission link
             submission_link = self._find_submission_link(driver)
             if submission_link:
                 driver.get(submission_link)
                 time.sleep(2)
             
-            # Check if login is required
+            # Handle login if required
             if self._is_login_required(driver):
                 logger.info(f"Login required for {url}")
                 self._handle_login(driver)
                 time.sleep(2)
             
-            # Fill the form
+            # Fill the directory form
             form_data = self._fill_directory_form(driver)
             
-            # Handle captcha if present
+            # Handle CAPTCHA if present
             captcha_result = self._handle_captcha(driver)
             
             # Submit the form
             submit_result = self._submit_form(driver)
-            time.sleep(3)  # Wait for submission to process
+            time.sleep(3)
             
-            # Take another screenshot after submission
+            # Take confirmation screenshot
             confirmation_screenshot = f"static/screenshots/{url.replace('://', '_').replace('/', '_')}_confirmation.png"
             driver.save_screenshot(confirmation_screenshot)
             
-            # Check submission result
+            # Verify submission success
             success = self._verify_submission_success(driver)
             
             result = {
@@ -97,7 +98,6 @@ class DirectoryAgent:
                 "timestamp": datetime.now().isoformat()
             }
             
-            # Take error screenshot if driver exists
             if driver:
                 error_screenshot = f"static/screenshots/{url.replace('://', '_').replace('/', '_')}_error.png"
                 driver.save_screenshot(error_screenshot)
@@ -110,7 +110,7 @@ class DirectoryAgent:
         return result
     
     def _find_submission_link(self, driver):
-        """Find the link to submit a business"""
+        """Find the link to submit a business to the directory."""
         potential_texts = [
             "submit", "add", "list", "submit your site", "add your site", 
             "submit business", "add business", "add listing", "submit listing"
@@ -118,7 +118,6 @@ class DirectoryAgent:
         
         for text in potential_texts:
             try:
-                # Try different ways to find the link
                 elements = driver.find_elements(By.XPATH, f"//a[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{text.lower()}')]")
                 if elements:
                     return elements[0].get_attribute("href")
@@ -128,6 +127,7 @@ class DirectoryAgent:
         return None
     
     def _is_login_required(self, driver):
+        """Check if login is required before submission."""
         login_indicators = [
             "login", "sign in", "log in", "signin", "log-in",
             "register", "sign up", "signup", "create account"
@@ -147,25 +147,21 @@ class DirectoryAgent:
         return False
     
     def _handle_login(self, driver):
-        """Handle login or registration if required"""
+        """Attempt to login using business credentials."""
         try:
-            # Try to find email/username field
             email_fields = driver.find_elements(By.XPATH, "//input[@type='email' or contains(@name, 'email') or contains(@id, 'email')]")
             if email_fields:
                 email_fields[0].send_keys(self.business_data["email"])
             
-            # Try to find password field and submit
             password_fields = driver.find_elements(By.XPATH, "//input[@type='password']")
             if password_fields:
-                # Generate a password based on business data
                 password = self.business_data['password']
                 password_fields[0].send_keys(password)
             
-            # Find and click submit button
             submit_buttons = driver.find_elements(By.XPATH, "//button[@type='submit'] | //input[@type='submit']")
             if submit_buttons:
                 submit_buttons[0].click()
-                time.sleep(3)  # Wait for login to process
+                time.sleep(3)
             
             return True
         except Exception as e:
@@ -173,10 +169,9 @@ class DirectoryAgent:
             return False
     
     def _fill_directory_form(self, driver):
-        """Intelligently fill the directory submission form"""
+        """Fill out directory submission form with business data."""
         form_data = {}
         
-        # Map of common field names and their values from business data
         field_mappings = {
             "name": self.business_data["company_name"],
             "title": self.business_data["company_name"],
@@ -206,7 +201,7 @@ class DirectoryAgent:
             "owner": self.business_data["founder_name"],
         }
         
-        # Fill text inputs based on field name/id/placeholder
+        # Fill text inputs
         for field_key, value in field_mappings.items():
             xpaths = [
                 f"//input[contains(@name, '{field_key}')]",
@@ -230,13 +225,12 @@ class DirectoryAgent:
                 except Exception as e:
                     logger.debug(f"Error filling field {field_key}: {str(e)}")
         
-        # Handle select dropdowns - categories
+        # Handle category dropdowns
         try:
             select_elements = driver.find_elements(By.XPATH, "//select[contains(@name, 'category') or contains(@id, 'category')]")
             for select in select_elements:
                 options = select.find_elements(By.TAG_NAME, "option")
                 
-                # Try to find an option that matches our category
                 best_match = None
                 for option in options:
                     option_text = option.text
@@ -244,7 +238,6 @@ class DirectoryAgent:
                         best_match = option.get_attribute("value")
                         break
                 
-                # If no match, just select the first non-empty option
                 if not best_match:
                     for option in options:
                         value = option.get_attribute("value")
@@ -261,14 +254,13 @@ class DirectoryAgent:
         except Exception as e:
             logger.debug(f"Error handling category select: {str(e)}")
         
-        # Handle checkboxes - likely terms and conditions
+        # Handle checkboxes (like terms and conditions)
         try:
             checkboxes = driver.find_elements(By.XPATH, "//input[@type='checkbox']")
             for checkbox in checkboxes:
                 checkbox_id = checkbox.get_attribute("id") or ""
                 checkbox_name = checkbox.get_attribute("name") or ""
                 
-                # Check if it looks like terms and conditions
                 if ("term" in checkbox_id.lower() or "agree" in checkbox_id.lower() or 
                     "accept" in checkbox_id.lower() or "consent" in checkbox_id.lower()):
                     if not checkbox.is_selected():
@@ -285,15 +277,13 @@ class DirectoryAgent:
         return form_data
     
     def _handle_captcha(self, driver):
-        """Handle CAPTCHA if present on the page"""
-        # Check for reCAPTCHA
+        """Handle CAPTCHA challenges if present."""
         try:
             recaptcha_elements = driver.find_elements(By.XPATH, "//div[contains(@class, 'g-recaptcha') or contains(@class, 'recaptcha')]")
             if recaptcha_elements and self.captcha_api_key:
                 site_key = recaptcha_elements[0].get_attribute("data-sitekey")
                 if site_key:
-                    # In a real implementation, use a service like 2Captcha
-                    # This is a simplified placeholder
+                    # This is a placeholder for actual CAPTCHA solving service integration
                     url = "https://2captcha.com/in.php"
                     params = {
                         "key": self.captcha_api_key,
@@ -307,16 +297,13 @@ class DirectoryAgent:
                         response = requests.get(url, params=params)
                         data = response.json()
                         if data["status"] == 1:
-                            # Wait for solution
                             time.sleep(20)
                             
-                            # Get solution
                             solution_url = f"https://2captcha.com/res.php?key={self.captcha_api_key}&action=get&id={data['request']}&json=1"
                             solution_response = requests.get(solution_url)
                             solution_data = solution_response.json()
                             
                             if solution_data["status"] == 1:
-                                # Execute JS to fill the captcha
                                 driver.execute_script(f"""
                                     document.querySelector('[name="g-recaptcha-response"]').innerHTML = '{solution_data["request"]}';
                                     if (typeof grecaptcha !== 'undefined') {{
@@ -336,8 +323,7 @@ class DirectoryAgent:
         return {"solved": False, "type": "none"}
     
     def _submit_form(self, driver):
-        """Submit the form once filled"""
-        # Look for submit button
+        """Submit the filled-out form."""
         submit_xpaths = [
             "//button[@type='submit']",
             "//input[@type='submit']",
@@ -353,7 +339,7 @@ class DirectoryAgent:
             try:
                 submit_button = driver.find_element(By.XPATH, xpath)
                 submit_button.click()
-                time.sleep(3)  # Wait for submission to process
+                time.sleep(3)
                 return True
             except NoSuchElementException:
                 continue
@@ -361,7 +347,7 @@ class DirectoryAgent:
         return False
     
     def _verify_submission_success(self, driver):
-        """Verify if the submission was successful"""
+        """Verify if the submission was successful."""
         current_url = driver.current_url
         page_text = driver.page_source.lower()
         
@@ -378,7 +364,6 @@ class DirectoryAgent:
         # Check page content for success messages
         for indicator in success_indicators:
             if indicator in page_text:
-                # Look for phrases that suggest success
                 patterns = [
                     f".*{indicator}.*submission.*",
                     f".*submission.*{indicator}.*",

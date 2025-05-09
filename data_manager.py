@@ -10,34 +10,35 @@ logger = logging.getLogger(__name__)
 
 class DataManager:
     def __init__(self, db_path: str):
+        """Initialize the DataManager with the path to the SQLite database."""
         self.db_path = db_path
         
     def initialize_database(self):
-        """Create database tables if they don't exist"""
+        """Create database tables if they don't exist."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        # Create businesses table
+        # Create businesses table to store business data
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS businesses (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            data JSON NOT NULL,
-            created_at TEXT NOT NULL
+            data JSON NOT NULL,  
+            created_at TEXT NOT NULL  
         )
         ''')
         
-        # Create directory_submissions table
+        # Create directory_submissions table to track directory submissions
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS directory_submissions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            business_id INTEGER NOT NULL,
-            directory_url TEXT NOT NULL,
-            status TEXT DEFAULT 'pending',
-            response_data JSON,
-            listing_status TEXT DEFAULT 'not_found',
-            last_checked TEXT,
-            created_at TEXT NOT NULL,
-            updated_at TEXT,
+            business_id INTEGER NOT NULL,  
+            directory_url TEXT NOT NULL,  
+            status TEXT DEFAULT 'pending',  
+            response_data JSON,  
+            listing_status TEXT DEFAULT 'not_found',  
+            last_checked TEXT,  
+            created_at TEXT NOT NULL,  
+            updated_at TEXT,  
             FOREIGN KEY (business_id) REFERENCES businesses (id)
         )
         ''')
@@ -46,7 +47,7 @@ class DataManager:
         conn.close()
         
     def save_business_data(self, business_data: Dict) -> int:
-        """Save business data and return the ID"""
+        """Save business data to the database and return the business ID."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
@@ -64,7 +65,7 @@ class DataManager:
         return business_id
     
     def get_business_data(self, business_id: int) -> Dict:
-        """Get business data by ID"""
+        """Retrieve business data by ID."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -79,7 +80,7 @@ class DataManager:
         return None
     
     def add_directory_url(self, business_id: int, directory_url: str):
-        """Add a directory URL for a business"""
+        """Add a directory URL for submission tracking."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
@@ -99,7 +100,7 @@ class DataManager:
     
     def update_submission_status(self, business_id: int, directory_url: str, 
                                 status: str, response_data: Dict = None):
-        """Update the status of a directory submission"""
+        """Update the status of a directory submission."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
@@ -120,7 +121,7 @@ class DataManager:
     
     def update_listing_status(self, business_id: int, directory_url: str, 
                              listing_status: str):
-        """Update the listing status of a directory submission"""
+        """Update the listing status of a directory submission."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
@@ -139,7 +140,7 @@ class DataManager:
         conn.close()
     
     def get_all_submission_statuses(self, business_id: int) -> List[Dict]:
-        """Get statuses of all directory submissions for a business"""
+        """Get statuses of all directory submissions for a business."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
@@ -168,7 +169,10 @@ class DataManager:
         return statuses
     
     def get_submissions_for_checking(self, business_id: int = None) -> List[Dict]:
-        """Get submissions that need to be checked for listing status"""
+        """
+        Get submissions that need to be checked for listing status.
+        Returns submissions with status 'success' but listing_status not 'live'.
+        """
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()

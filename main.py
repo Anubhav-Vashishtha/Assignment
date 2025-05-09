@@ -43,6 +43,7 @@ scheduler.start()
 
 # Models
 class BusinessData(BaseModel):
+    """Pydantic model for business data validation."""
     company_name: str
     tagline: str
     website_url: str
@@ -59,7 +60,7 @@ class BusinessData(BaseModel):
 
 @app.on_event("startup")
 async def startup_event():
-    # Create tables if they don't exist
+    """Initialize database and schedule weekly tasks on startup."""
     data_manager.initialize_database()
     
     # Schedule weekly listing checker
@@ -74,15 +75,18 @@ async def startup_event():
 
 @app.on_event("shutdown")
 async def shutdown_event():
+    """Clean up on shutdown."""
     scheduler.shutdown()
 
 @app.get("/", response_class=HTMLResponse)
 async def get_home():
+    """Serve the home page."""
     with open("static/index.html", "r") as f:
         return f.read()
 
 @app.post("/submit-business-data")
 async def submit_business_data(business_data: BusinessData):
+    """Endpoint to submit business data."""
     business_id = data_manager.save_business_data(business_data.dict())
     return {"status": "success", "business_id": business_id}
 
@@ -92,6 +96,7 @@ async def upload_csv_file(
     file: UploadFile = File(...),
     business_id: int = Form(...)
 ):
+    """Endpoint to upload CSV of directory URLs."""
     content = await file.read()
     csv_content = content.decode('utf-8')
     csv_reader = csv.reader(io.StringIO(csv_content))
@@ -109,6 +114,7 @@ async def upload_csv_file(
     return {"status": "success", "message": f"Processing {len(urls)} directories in the background"}
 
 async def process_directories(business_id: int, urls: List[str]):
+    """Background task to process directory submissions."""
     business_data = data_manager.get_business_data(business_id)
     
     for url in urls:
@@ -135,11 +141,13 @@ async def process_directories(business_id: int, urls: List[str]):
 
 @app.get("/status/{business_id}")
 async def get_status(business_id: int):
+    """Get submission statuses for a business."""
     statuses = data_manager.get_all_submission_statuses(business_id)
     return {"statuses": statuses}
 
 @app.post("/check-listings/{business_id}")
 async def trigger_listing_check(business_id: int, background_tasks: BackgroundTasks):
+    """Trigger a manual listing check for a business."""
     background_tasks.add_task(listing_checker.check_listings_for_business, business_id)
     return {"status": "success", "message": "Listing check triggered"}
 

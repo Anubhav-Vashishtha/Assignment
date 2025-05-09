@@ -14,8 +14,9 @@ logger = logging.getLogger(__name__)
 
 class ListingChecker:
     def __init__(self, data_manager):
+        """Initialize with a DataManager instance."""
         self.data_manager = data_manager
-        # Configure Chrome options
+        # Configure Chrome options for Selenium
         self.chrome_options = webdriver.ChromeOptions()
         self.chrome_options.add_argument("--start-maximized")
         self.chrome_options.add_argument("--disable-extensions")
@@ -23,11 +24,11 @@ class ListingChecker:
         self.chrome_options.add_argument("--disable-notifications")
         self.chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36")
         # For headless mode (uncomment if needed)
-        # self.chrome_options.add_argument("--headless")
+        self.chrome_options.add_argument("--headless")
         # self.chrome_options.add_argument("--disable-gpu")
     
     def check_listings_for_business(self, business_id: int):
-        """Check listing status for all successful submissions of a business"""
+        """Check listing status for all successful submissions of a business."""
         submissions = self.data_manager.get_submissions_for_checking(business_id)
         
         for submission in submissions:
@@ -54,7 +55,7 @@ class ListingChecker:
                 logger.error(f"Error checking listing for {submission['directory_url']}: {str(e)}")
     
     def _check_listing(self, directory_url: str, company_name: str, website_url: str) -> str:
-        """Check if a listing is live on a directory using Selenium"""
+        """Check if a business listing is live on a directory."""
         driver = None
         try:
             # Initialize Chrome driver
@@ -63,7 +64,7 @@ class ListingChecker:
             
             # Navigate to directory homepage
             driver.get(directory_url)
-            time.sleep(2)  # Initial page load
+            time.sleep(2)
             
             # Look for search box
             search_boxes = driver.find_elements(By.XPATH, "//input[@type='search' or contains(@name, 'search') or contains(@placeholder, 'search')]")
@@ -74,7 +75,7 @@ class ListingChecker:
                 search_box.clear()
                 search_box.send_keys(company_name)
                 search_box.submit()
-                time.sleep(3)  # Wait for search results
+                time.sleep(3)
             else:
                 # Try to construct a search URL
                 parsed_url = urlparse(directory_url)
@@ -86,34 +87,32 @@ class ListingChecker:
                         search_url = f"{base_url}{path}?q={quote(company_name)}"
                         driver.get(search_url)
                         time.sleep(2)
-                        # Check if we landed on a search results page
                         page_content = driver.page_source.lower()
                         if company_name.lower() in page_content:
                             break
                     except Exception:
                         continue
             
-            # Check if company name or website URL appears on the page
+            # Check if company name or website appears on the page
             page_content = driver.page_source.lower()
             company_name_lower = company_name.lower()
             website_url_lower = website_url.lower()
             
             if company_name_lower in page_content:
-                # Check if we can find the website URL as well for higher confidence
+                # Check for website URL for higher confidence
                 if website_url_lower in page_content:
                     return "live"
                 
-                # Try to find a link that contains the domain
+                # Check for links containing the domain
                 domain = urlparse(website_url).netloc
                 links = driver.find_elements(By.XPATH, f"//a[contains(@href, '{domain}')]")
                 
                 if links:
                     return "live"
                 
-                # If we only found the name but not the URL, it's potentially live
+                # Only name found
                 return "potential"
             else:  
-                # No listing found
                 return "not_found"
             
         except Exception as e:
@@ -125,10 +124,9 @@ class ListingChecker:
                 driver.quit()
     
     def check_all_listings(self):
-        """Check all listings that need verification"""
+        """Check all listings that need verification (weekly task)."""
         logger.info("Running weekly listing check for all businesses")
         
-        # Get all submissions that need checking
         submissions = self.data_manager.get_submissions_for_checking()
         
         # Group by business_id for efficiency
