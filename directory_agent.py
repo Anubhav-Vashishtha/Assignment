@@ -3,6 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from helper.form_field import form_field
 import logging
 import time
 import json
@@ -30,7 +31,6 @@ class DirectoryAgent:
         self.chrome_options.add_argument("--disable-notifications")
         self.chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36")
         
-    
     def submit_to_directory(self, url: str) -> Dict[str, Any]:
         """Submit business to a directory and return submission results."""
         driver = None
@@ -168,7 +168,7 @@ class DirectoryAgent:
             logger.error(f"Error during login: {str(e)}")
             return False
     
-    def _fill_directory_form(self, driver):
+    
         """Fill out directory submission form with business data."""
         form_data = {}
         
@@ -276,6 +276,129 @@ class DirectoryAgent:
         
         return form_data
     
+    def _fill_directory_form(self, driver):
+        form_data = {}
+        
+        field_mappings = form_field(self.business_data)
+        
+        def try_fill_element(element, value):
+            """Helper function to safely fill an element"""
+            try:
+                element.clear()
+                element.send_keys(str(value))
+                name = element.get_attribute("name") or element.get_attribute("id") or ""
+                form_data[name] = value
+                return True
+            except Exception as e:
+                logger.debug(f"Error filling field: {str(e)}")
+                return False
+
+        # First pass: Try exact matches
+        for field_key, value in field_mappings.items():
+            if not value:  # Skip empty values
+                continue
+                
+            xpaths = [
+                f"//input[contains(@name, '{field_key}')]",
+                f"//input[contains(@id, '{field_key}')]",
+                f"//input[contains(@placeholder, '{field_key}')]",
+                f"//textarea[contains(@name, '{field_key}')]",
+                f"//textarea[contains(@id, '{field_key}')]",
+                f"//textarea[contains(@placeholder, '{field_key}')]"
+            ]
+            
+            for xpath in xpaths:
+                try:
+                    elements = driver.find_elements(By.XPATH, xpath)
+                    for element in elements:
+                        input_type = element.get_attribute("type") or ""
+                        if input_type.lower() not in ["submit", "button", "hidden", "checkbox", "radio"]:
+                            if try_fill_element(element, value):
+                                break  # Move to next field if successful
+                except Exception:
+                    continue
+
+        # Second pass: Try more flexible matching for location fields
+        location_fields = {
+            "city": ["town", "city", "location", "place"],
+            "state": ["state", "province", "region", "county"],
+            "zip": ["zip", "postal", "postcode"],
+            "country": ["country", "nation"]
+        }
+
+        for field_type, variants in location_fields.items():
+            value = self.business_data["location"].get(field_type, "")
+            if not value:
+                continue
+                
+            # Try each variant pattern
+            for variant in variants:
+                xpath = f"//*[contains(translate(@name, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{variant}')] | " \
+                        f"//*[contains(translate(@id, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{variant}')] | " \
+                        f"//*[contains(translate(@placeholder, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{variant}')] | " \
+                        f"//label[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{variant}')]/following-sibling::input"
+                
+                try:
+                    elements = driver.find_elements(By.XPATH, xpath)
+                    for element in elements:
+                        input_type = element.get_attribute("type") or ""
+                        if input_type.lower() not in ["submit", "button", "hidden", "checkbox", "radio"]:
+                            if try_fill_element(element, value):
+                                break  # Move to next field if successful
+                except Exception:
+                    continue
+
+        # Handle dropdowns (same as before)
+        try:
+            select_elements = driver.find_elements(By.XPATH, "//select[contains(@name, 'category') or contains(@id, 'category')]")
+            for select in select_elements:
+                options = select.find_elements(By.TAG_NAME, "option")
+                
+                best_match = None
+                for option in options:
+                    option_text = option.text
+                    if self.business_data["business_category"].lower() in option_text.lower():
+                        best_match = option.get_attribute("value")
+                        break
+                
+                if not best_match:
+                    for option in options:
+                        value = option.get_attribute("value")
+                        if value and value != "0" and value != "-1":
+                            best_match = value
+                            break
+                
+                if best_match:
+                    from selenium.webdriver.support.ui import Select
+                    dropdown = Select(select)
+                    dropdown.select_by_value(best_match)
+                    name = select.get_attribute("name") or select.get_attribute("id") or ""
+                    form_data[name] = best_match
+        except Exception as e:
+            logger.debug(f"Error handling category select: {str(e)}")
+
+        # Handle checkboxes (same as before)
+        try:
+            checkboxes = driver.find_elements(By.XPATH, "//input[@type='checkbox']")
+            for checkbox in checkboxes:
+                checkbox_id = checkbox.get_attribute("id") or ""
+                checkbox_name = checkbox.get_attribute("name") or ""
+                
+                if ("term" in checkbox_id.lower() or "agree" in checkbox_id.lower() or 
+                    "accept" in checkbox_id.lower() or "consent" in checkbox_id.lower()):
+                    if not checkbox.is_selected():
+                        checkbox.click()
+                    form_data[checkbox_name or checkbox_id] = True
+                elif ("term" in checkbox_name.lower() or "agree" in checkbox_name.lower() or 
+                    "accept" in checkbox_name.lower() or "consent" in checkbox_name.lower()):
+                    if not checkbox.is_selected():
+                        checkbox.click()
+                    form_data[checkbox_name] = True
+        except Exception as e:
+            logger.debug(f"Error handling checkboxes: {str(e)}")
+        
+        return form_data
+
     def _handle_captcha(self, driver):
         """Handle CAPTCHA challenges if present."""
         try:
