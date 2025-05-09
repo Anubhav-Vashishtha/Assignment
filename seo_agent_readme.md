@@ -77,19 +77,13 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
-
-3. Install Playwright browsers
-```bash
-playwright install
-```
-
-4. Set up environment variables (for CAPTCHA service, if using)
+3. Set up environment variables (for CAPTCHA service, if using)
 ```bash
 cp .env.example .env
 # Edit .env with your CAPTCHA API key
 ```
 
-5. Run the application
+4. Run the application
 ```bash
 uvicorn main:app --reload
 ```
@@ -148,7 +142,6 @@ To scale this solution to handle hundreds of directories efficiently:
 
 ## Future Enhancements
 
-- **Multi-language Support**: Handle directories in different languages
 - **Business Profile API**: Allow integration with business CRM systems
 - **Directory Effectiveness Rating**: Track which directories provide the most value
 - **Submission Templates**: Create templates for common directory platforms
@@ -161,11 +154,3 @@ To scale this solution to handle hundreds of directories efficiently:
 - **Directory Changes**: Directory websites can change, breaking automation
 - **Rate Limiting**: Directories may block IPs that make too many requests
 - **Ethical Considerations**: Always respect robots.txt and terms of service
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
