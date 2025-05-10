@@ -26,19 +26,12 @@ The project follows a modular design with these core components:
 - **Listing Checker**: Verifies if listings are live on directories
 - **Web UI**: Simple interface for users to interact with the system
 
-### Architecture Diagram
-![SEO Agent Architecture](./images/archi.svg)
-
-### Process Flow
-![SEO Agent Architecture](./images/flow.svg)
-
-
 ## Technical Implementation
 
 ### Technology Stack
 
 - **Backend**: Python with FastAPI
-- **Web Automation**: Playwright
+- **Web Automation**: Selenium
 - **Database**: SQLite (easily upgradable to PostgreSQL/MongoDB)
 - **Scheduling**: APScheduler for recurring tasks
 - **CAPTCHA Solving**: Integration with 2Captcha API
@@ -116,6 +109,12 @@ To scale this solution to handle hundreds of directories efficiently:
    - Add a distributed task queue using Celery with Redis/RabbitMQ
    - Deploy multiple workers to process directory submissions in parallel
 
+1. **AI Vision Pipeline**:
+   - Implement screenshot capture at each submission step
+   - Computer vision analysis to detect form fields and business location
+   - Integration with automation pipeline for dynamic form filling
+   - NLP for understanding submission success/failure messages
+
 2. **Proxy Rotation System**:
    - Implement IP rotation to avoid rate limiting
    - Integrate with proxy providers for clean IPs
@@ -153,4 +152,3 @@ To scale this solution to handle hundreds of directories efficiently:
 - **CAPTCHA Challenges**: Some directories implement sophisticated anti-bot measures
 - **Directory Changes**: Directory websites can change, breaking automation
 - **Rate Limiting**: Directories may block IPs that make too many requests
-- **Ethical Considerations**: Always respect robots.txt and terms of service
